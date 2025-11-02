@@ -63,28 +63,6 @@ def home():
                 font-family: 'Microsoft YaHei', sans-serif;
             }
             
-            #start-btn {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                padding: 20px 40px;
-                font-size: 24px;
-                background: linear-gradient(45deg, #FF6B9C, #FF8E53);
-                color: white;
-                border: none;
-                border-radius: 50px;
-                cursor: pointer;
-                box-shadow: 0 10px 30px rgba(255, 107, 156, 0.4);
-                transition: all 0.3s;
-                z-index: 1000;
-            }
-            
-            #start-btn:hover {
-                transform: translate(-50%, -50%) scale(1.1);
-                box-shadow: 0 15px 40px rgba(255, 107, 156, 0.6);
-            }
-            
             #counter {
                 position: fixed;
                 top: 20px;
@@ -95,13 +73,14 @@ def home():
                 font-size: 16px;
                 color: #333;
                 z-index: 1000;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             }
             
             .tip {
                 position: absolute;
                 padding: 15px 25px;
                 border-radius: 15px;
-                animation: floatIn 0.4s ease-out, float 3s ease-in-out infinite;
+                animation: floatIn 0.6s ease-out, float 4s ease-in-out infinite;
                 cursor: pointer;
                 max-width: 250px;
                 text-align: center;
@@ -115,6 +94,7 @@ def home():
             .tip:hover {
                 transform: scale(1.08) rotate(2deg);
                 box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+                z-index: 200;
             }
             
             @keyframes floatIn {
@@ -130,7 +110,7 @@ def home():
             
             @keyframes float {
                 0%, 100% { transform: translateY(0) rotate(0); }
-                50% { transform: translateY(-10px) rotate(1deg); }
+                50% { transform: translateY(-8px) rotate(1deg); }
             }
             
             @keyframes fadeOut {
@@ -139,10 +119,21 @@ def home():
                     transform: translateY(30px) scale(0.8) rotate(5deg);
                 }
             }
+            
+            .title {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                color: white;
+                font-size: 24px;
+                font-weight: bold;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                z-index: 1000;
+            }
         </style>
     </head>
     <body>
-        <button id="start-btn" onclick="startTips()">🎲 开始温馨提醒</button>
+        <div class="title">🌼 温馨提醒</div>
         <div id="counter">已显示: <span id="count">0</span> 条提示</div>
         <div id="container"></div>
         
@@ -150,61 +141,65 @@ def home():
             const tips = {{ tips|tojson }};
             const colors = {{ bg_colors|tojson }};
             let tipCount = 0;
-            let isRunning = false;
             let totalCreated = 0;
             
+            // 页面加载后自动开始
+            window.addEventListener('load', function() {
+                startTips();
+            });
+            
             function startTips() {
-                if (isRunning) return;
-                
-                isRunning = true;
-                document.getElementById('start-btn').style.display = 'none';
-                
-                // 高速创建弹窗（每秒3-5个）
+                // 高速创建弹窗（每秒2-3个）
                 const fastInterval = setInterval(() => {
-                    if (totalCreated >= 300) { // 总共创建300个弹窗
+                    if (totalCreated >= 200) { // 总共创建200个弹窗
                         clearInterval(fastInterval);
                         return;
                     }
                     createTip();
-                }, 200); // 每200毫秒创建一个
+                }, 300); // 每300毫秒创建一个
                 
-                // 额外的高速批次（每秒8-10个）
+                // 额外的高速批次（每秒4-5个）
                 setTimeout(() => {
                     const superFastInterval = setInterval(() => {
-                        if (totalCreated >= 300) {
+                        if (totalCreated >= 200) {
                             clearInterval(superFastInterval);
                             return;
                         }
-                        for(let i = 0; i < 3; i++) {
-                            setTimeout(() => createTip(), i * 50);
+                        for(let i = 0; i < 2; i++) {
+                            setTimeout(() => createTip(), i * 100);
                         }
-                    }, 300);
-                }, 2000);
+                    }, 500);
+                }, 3000);
+                
+                // 持续创建，保持页面活跃
+                setInterval(() => {
+                    if (tipCount < 50) { // 如果当前弹窗少于50个，就补充
+                        createTip();
+                    }
+                }, 1000);
             }
             
             function createTip() {
-                if (totalCreated >= 300) return;
-                
                 const tip = document.createElement('div');
                 tip.className = 'tip';
                 tip.textContent = tips[Math.floor(Math.random() * tips.length)];
                 tip.style.background = colors[Math.floor(Math.random() * colors.length)];
-                tip.style.left = Math.random() * 90 + 'vw';
-                tip.style.top = Math.random() * 90 + 'vh';
+                tip.style.left = Math.random() * 85 + 'vw';
+                tip.style.top = Math.random() * 85 + 'vh';
                 tip.style.color = '#2F4F4F';
                 tip.style.fontSize = (16 + Math.random() * 6) + 'px';
                 tip.style.fontWeight = Math.random() > 0.7 ? 'bold' : 'normal';
                 
                 // 点击移除
                 tip.onclick = function() { 
-                    this.style.animation = 'fadeOut 0.4s forwards';
+                    this.style.animation = 'fadeOut 0.6s forwards';
                     setTimeout(() => {
                         if (this.parentNode) {
                             this.remove();
                             tipCount--;
                             updateCounter();
                         }
-                    }, 400);
+                    }, 600);
                 };
                 
                 document.getElementById('container').appendChild(tip);
@@ -212,29 +207,30 @@ def home():
                 totalCreated++;
                 updateCounter();
                 
-                // 1.5-4秒后自动消失（更快消失）
+                // 6-12秒后自动消失（大大延长消失时间）
                 setTimeout(() => {
                     if (tip.parentNode) {
-                        tip.style.animation = 'fadeOut 0.4s forwards';
+                        tip.style.animation = 'fadeOut 0.8s forwards';
                         setTimeout(() => {
                             if (tip.parentNode) {
                                 tip.remove();
                                 tipCount--;
                                 updateCounter();
                             }
-                        }, 400);
+                        }, 800);
                     }
-                }, 1500 + Math.random() * 2500);
+                }, 6000 + Math.random() * 6000); // 6-12秒消失
             }
             
             function updateCounter() {
                 document.getElementById('count').textContent = tipCount;
             }
             
-            // 添加键盘快捷键
+            // 添加键盘快捷键：按空格键可以快速创建新弹窗
             document.addEventListener('keydown', function(e) {
-                if (e.code === 'Space' && !isRunning) {
-                    startTips();
+                if (e.code === 'Space') {
+                    createTip();
+                    e.preventDefault(); // 防止页面滚动
                 }
             });
         </script>
