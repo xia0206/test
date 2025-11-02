@@ -1,2 +1,1 @@
-# requirements.txt - 依赖文件
 flask==2.3.3
