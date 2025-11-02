@@ -1,72 +1,93 @@
-import streamlit as st
+from flask import Flask, render_template_string
 import random
 import time
 
-# 页面配置
-st.set_page_config(
-    page_title="随机温馨提示",
-    page_icon="💝",
-    layout="centered"
-)
+app = Flask(__name__)
 
-# 丰富的提示内容库
+# 您的提示数据
 tips = [
     '多喝水哦~💧', '保持微笑呀😊', '每天都要元气满满✨',
     '记得吃水果🍎', '保持好心情🌞', '好好爱自己❤️',
-    # ... 您的所有提示内容
+    '期待下一次见面👋', '顺顺利利🎯', '早点休息🌙',
+    '愿所有烦恼都消失🌈', '别熬夜⏰', '今天过得开心嘛🎉'
 ]
 
-# 柔和的背景颜色库
 bg_colors = [
     '#FFF0F5', '#F0FFFF', '#F5FFFA', '#FFF8DC', '#F0F8FF',
-    # ... 您的所有颜色
+    '#F8F8FF', '#F5F5F5', '#FAFAD2', '#E6E6FA', '#FFE4E1'
 ]
 
-def main():
-    st.title("💝 随机温馨提示生成器")
-    
-    # 控制参数
-    col1, col2 = st.columns(2)
-    with col1:
-        window_count = st.slider("提示数量", 1, 50, 10)
-    with col2:
-        display_time = st.slider("显示时间(秒)", 1, 10, 3)
-    
-    if st.button("🎲 开始随机显示", type="primary"):
-        st.info(f"将在页面中随机显示 {window_count} 条温馨提示...")
-        
-        # 创建占位符用于动态显示
-        placeholder = st.empty()
-        
-        for i in range(window_count):
-            tip_text = random.choice(tips)
-            bg_color = random.choice(bg_colors)
-            
-            # 使用HTML创建浮动效果
-            html_content = f"""
-            <div style='
-                background-color: {bg_color};
+@app.route('/')
+def home():
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>温馨提醒</title>
+        <style>
+            body { margin: 0; overflow: hidden; background: #f0f8ff; }
+            .tip {
+                position: absolute;
                 padding: 20px;
-                margin: 10px;
                 border-radius: 10px;
-                border-left: 5px solid #FF6B9C;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
                 animation: fadeIn 0.5s;
-            '>
-                <h3 style='color: #2F4F4F; margin:0;'>{tip_text}</h3>
-            </div>
-            <style>
-            @keyframes fadeIn {{
-                from {{ opacity: 0; transform: translateY(-10px); }}
-                to {{ opacity: 1; transform: translateY(0); }}
-            }}
-            </style>
-            """
-            
-            placeholder.markdown(html_content, unsafe_allow_html=True)
-            time.sleep(display_time)
+                cursor: pointer;
+                max-width: 200px;
+                text-align: center;
+                font-family: 'Microsoft YaHei', sans-serif;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                border-left: 5px solid #FF6B9C;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
         
-        st.success("🎉 所有温馨提示已显示完毕！")
+        <script>
+            const tips = {{ tips|tojson }};
+            const colors = {{ bg_colors|tojson }};
+            let tipCount = 0;
+            
+            function createTip() {
+                if (tipCount >= 50) return;
+                
+                const tip = document.createElement('div');
+                tip.className = 'tip';
+                tip.textContent = tips[Math.floor(Math.random() * tips.length)];
+                tip.style.background = colors[Math.floor(Math.random() * colors.length)];
+                tip.style.left = Math.random() * 85 + 'vw';
+                tip.style.top = Math.random() * 85 + 'vh';
+                tip.style.color = '#2F4F4F';
+                tip.style.fontSize = (14 + Math.random() * 4) + 'px';
+                
+                tip.onclick = function() { this.remove(); };
+                
+                document.getElementById('container').appendChild(tip);
+                tipCount++;
+                
+                setTimeout(() => {
+                    if (tip.parentNode) {
+                        tip.remove();
+                        tipCount--;
+                    }
+                }, 3000 + Math.random() * 2000);
+            }
+            
+            // 随机时间间隔创建提示
+            setInterval(createTip, 800);
+            // 立即创建几个
+            for(let i = 0; i < 5; i++) {
+                setTimeout(createTip, i * 200);
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template, tips=tips, bg_colors=bg_colors)
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
