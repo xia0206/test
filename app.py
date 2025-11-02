@@ -58,9 +58,12 @@ def home():
         <style>
             body { 
                 margin: 0; 
+                padding: 0;
                 overflow: hidden; 
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 font-family: 'Microsoft YaHei', sans-serif;
+                width: 100vw;
+                height: 100vh;
             }
             
             #counter {
@@ -76,11 +79,24 @@ def home():
                 box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             }
             
+            #controls {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background: rgba(255,255,255,0.9);
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 16px;
+                color: #333;
+                z-index: 1000;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+            
             .tip {
                 position: absolute;
                 padding: 15px 25px;
                 border-radius: 15px;
-                animation: floatIn 0.6s ease-out, float 4s ease-in-out infinite;
+                animation: floatIn 1s ease-out;
                 cursor: pointer;
                 max-width: 250px;
                 text-align: center;
@@ -89,6 +105,8 @@ def home():
                 border-left: 5px solid rgba(255,255,255,0.8);
                 transition: all 0.3s;
                 z-index: 100;
+                opacity: 0;
+                animation-fill-mode: forwards;
             }
             
             .tip:hover {
@@ -98,139 +116,194 @@ def home():
             }
             
             @keyframes floatIn {
-                from { 
+                0% { 
                     opacity: 0; 
                     transform: translateY(-40px) scale(0.7) rotate(-10deg);
                 }
-                to { 
+                70% {
+                    opacity: 0.8;
+                    transform: translateY(5px) scale(1.02) rotate(2deg);
+                }
+                100% { 
                     opacity: 1; 
                     transform: translateY(0) scale(1) rotate(0);
                 }
             }
             
-            @keyframes float {
-                0%, 100% { transform: translateY(0) rotate(0); }
-                50% { transform: translateY(-8px) rotate(1deg); }
-            }
-            
             @keyframes fadeOut {
-                to { 
+                0% { 
+                    opacity: 1;
+                    transform: scale(1) rotate(0);
+                }
+                100% { 
                     opacity: 0; 
-                    transform: translateY(30px) scale(0.8) rotate(5deg);
+                    transform: scale(0.8) rotate(5deg);
                 }
             }
             
             .title {
                 position: fixed;
                 top: 20px;
-                left: 20px;
+                left: 50%;
+                transform: translateX(-50%);
                 color: white;
-                font-size: 24px;
+                font-size: 28px;
                 font-weight: bold;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
                 z-index: 1000;
+            }
+            
+            button {
+                background: linear-gradient(45deg, #FF6B9C, #FF8E53);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                cursor: pointer;
+                margin-left: 10px;
+                font-size: 14px;
+            }
+            
+            button:hover {
+                transform: scale(1.05);
             }
         </style>
     </head>
     <body>
-        <div class="title">🌼 温馨提醒</div>
-        <div id="counter">已显示: <span id="count">0</span> 条提示</div>
+        <div class="title">🌼 温馨提醒铺满屏幕</div>
+        <div id="controls">
+            弹窗数量: <span id="tip-count">0</span>
+            <button onclick="startClosing()">开始逐个关闭</button>
+            <button onclick="resetAll()">重新开始</button>
+        </div>
         <div id="container"></div>
         
         <script>
             const tips = {{ tips|tojson }};
             const colors = {{ bg_colors|tojson }};
-            let tipCount = 0;
-            let totalCreated = 0;
+            const totalTips = 80; // 总共创建80个弹窗，确保铺满屏幕
+            let allTips = [];
+            let isClosing = false;
             
-            // 页面加载后自动开始
+            // 页面加载后立即创建所有弹窗
             window.addEventListener('load', function() {
-                startTips();
+                createAllTips();
             });
             
-            function startTips() {
-                // 高速创建弹窗（每秒2-3个）
-                const fastInterval = setInterval(() => {
-                    if (totalCreated >= 200) { // 总共创建200个弹窗
-                        clearInterval(fastInterval);
-                        return;
-                    }
-                    createTip();
-                }, 300); // 每300毫秒创建一个
+            function createAllTips() {
+                const container = document.getElementById('container');
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
                 
-                // 额外的高速批次（每秒4-5个）
-                setTimeout(() => {
-                    const superFastInterval = setInterval(() => {
-                        if (totalCreated >= 200) {
-                            clearInterval(superFastInterval);
-                            return;
-                        }
-                        for(let i = 0; i < 2; i++) {
-                            setTimeout(() => createTip(), i * 100);
-                        }
-                    }, 500);
-                }, 3000);
+                // 计算网格布局：8x10 网格
+                const cols = 8;
+                const rows = 10;
+                const cellWidth = screenWidth / cols;
+                const cellHeight = screenHeight / rows;
                 
-                // 持续创建，保持页面活跃
-                setInterval(() => {
-                    if (tipCount < 50) { // 如果当前弹窗少于50个，就补充
-                        createTip();
-                    }
-                }, 1000);
+                for (let i = 0; i < totalTips; i++) {
+                    setTimeout(() => {
+                        const tip = createTipElement(i, cols, rows, cellWidth, cellHeight);
+                        container.appendChild(tip);
+                        allTips.push(tip);
+                        document.getElementById('tip-count').textContent = allTips.length;
+                    }, i * 50); // 每个弹窗间隔50毫秒创建，形成波浪效果
+                }
             }
             
-            function createTip() {
+            function createTipElement(index, cols, rows, cellWidth, cellHeight) {
                 const tip = document.createElement('div');
                 tip.className = 'tip';
-                tip.textContent = tips[Math.floor(Math.random() * tips.length)];
-                tip.style.background = colors[Math.floor(Math.random() * colors.length)];
-                tip.style.left = Math.random() * 85 + 'vw';
-                tip.style.top = Math.random() * 85 + 'vh';
+                tip.textContent = tips[index % tips.length];
+                tip.style.background = colors[index % colors.length];
                 tip.style.color = '#2F4F4F';
                 tip.style.fontSize = (16 + Math.random() * 6) + 'px';
                 tip.style.fontWeight = Math.random() > 0.7 ? 'bold' : 'normal';
                 
-                // 点击移除
-                tip.onclick = function() { 
-                    this.style.animation = 'fadeOut 0.6s forwards';
-                    setTimeout(() => {
-                        if (this.parentNode) {
-                            this.remove();
-                            tipCount--;
-                            updateCounter();
-                        }
-                    }, 600);
+                // 计算网格位置，确保均匀分布
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                
+                // 在网格单元格内随机偏移，避免过于整齐
+                const x = col * cellWidth + Math.random() * (cellWidth - 200) + 20;
+                const y = row * cellHeight + Math.random() * (cellHeight - 100) + 20;
+                
+                tip.style.left = x + 'px';
+                tip.style.top = y + 'px';
+                
+                // 设置动画延迟，形成波浪效果
+                tip.style.animationDelay = (index * 0.05) + 's';
+                
+                // 点击单个关闭
+                tip.onclick = function() {
+                    closeTip(this);
                 };
                 
-                document.getElementById('container').appendChild(tip);
-                tipCount++;
-                totalCreated++;
-                updateCounter();
+                return tip;
+            }
+            
+            function startClosing() {
+                if (isClosing) return;
+                isClosing = true;
                 
-                // 6-12秒后自动消失（大大延长消失时间）
+                // 打乱关闭顺序，增加随机性
+                const shuffledTips = [...allTips].sort(() => Math.random() - 0.5);
+                
+                shuffledTips.forEach((tip, index) => {
+                    setTimeout(() => {
+                        if (tip.parentNode) {
+                            closeTip(tip);
+                        }
+                    }, index * 300); // 每300毫秒关闭一个
+                });
+                
+                // 全部关闭后重置
+                setTimeout(() => {
+                    isClosing = false;
+                    setTimeout(() => {
+                        if (!isClosing) {
+                            resetAll();
+                        }
+                    }, 2000);
+                }, shuffledTips.length * 300 + 1000);
+            }
+            
+            function closeTip(tip) {
+                tip.style.animation = 'fadeOut 0.8s forwards';
                 setTimeout(() => {
                     if (tip.parentNode) {
-                        tip.style.animation = 'fadeOut 0.8s forwards';
-                        setTimeout(() => {
-                            if (tip.parentNode) {
-                                tip.remove();
-                                tipCount--;
-                                updateCounter();
-                            }
-                        }, 800);
+                        tip.remove();
+                        const index = allTips.indexOf(tip);
+                        if (index > -1) {
+                            allTips.splice(index, 1);
+                        }
+                        document.getElementById('tip-count').textContent = allTips.length;
                     }
-                }, 6000 + Math.random() * 6000); // 6-12秒消失
+                }, 800);
             }
             
-            function updateCounter() {
-                document.getElementById('count').textContent = tipCount;
+            function resetAll() {
+                // 清除所有现有弹窗
+                const container = document.getElementById('container');
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+                allTips = [];
+                isClosing = false;
+                
+                // 重新创建所有弹窗
+                createAllTips();
             }
             
-            // 添加键盘快捷键：按空格键可以快速创建新弹窗
+            // 键盘快捷键
             document.addEventListener('keydown', function(e) {
                 if (e.code === 'Space') {
-                    createTip();
-                    e.preventDefault(); // 防止页面滚动
+                    if (!isClosing) {
+                        startClosing();
+                    } else {
+                        resetAll();
+                    }
+                    e.preventDefault();
                 }
             });
         </script>
