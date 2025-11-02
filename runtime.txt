@@ -1,2 +1,0 @@
-# runtime.txt - Python版本（可选）
-python-3.11
