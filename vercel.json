@@ -12,5 +12,5 @@
       "dest": "app.py"
     }
   ],
-  "regions": ["hkg1"]  // 指定香港区域，可能访问性更好
+  "regions": ["hkg1"]  
 }
